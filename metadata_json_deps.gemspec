@@ -19,6 +19,8 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'puppet_forge', '~> 6.0'
   s.add_runtime_dependency 'puppet_metadata', '>= 0.3.0', '< 6'
+  # dependency for puppet_forge, see https://github.com/puppetlabs/forge-ruby/pull/129
+  s.add_runtime_dependency 'base64', '~> 0.2.0'
 
   s.add_development_dependency 'rspec', '~> 3.0'
   s.add_development_dependency 'rake', '~> 13.0'
