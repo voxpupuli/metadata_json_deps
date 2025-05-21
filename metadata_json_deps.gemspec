@@ -1,14 +1,14 @@
 Gem::Specification.new do |s|
   s.name        = 'metadata_json_deps'
-  s.version     = '2.0.0'
+  s.version     = '2.1.0'
   s.licenses    = ['MIT']
   s.summary     = 'Check your Puppet metadata dependencies'
   s.description = 'Verify all your dependencies allow the latest versions on Puppet Forge'
-  s.authors     = ['Ewoud Kohl van Wijngaarden']
-  s.email       = 'ewoud+rubygems@kohlvanwijngaarden.nl'
+  s.authors     = ['Ewoud Kohl van Wijngaarden', 'Vox Pupuli']
+  s.email       = 'voxpupuli@groups.io'
   s.files       = Dir['lib/**/*.rb'] + Dir['bin/*'] + ['LICENSE']
   s.extra_rdoc_files = ['README.md']
-  s.homepage    = 'https://github.com/ekohl/metadata_json_deps'
+  s.homepage    = 'https://github.com/voxpupuli/metadata_json_deps'
   s.metadata    = { 'source_code_uri' => 'https://github.com/ekohl/metadata_json_deps' }
   s.executables << 'bump-dependency-upper-bound'
   s.executables << 'generate-fixtures-yaml'
