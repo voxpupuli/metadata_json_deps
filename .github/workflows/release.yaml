@@ -1,0 +1,29 @@
+---
+name: Gem Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    name: Release gem
+    runs-on: ubuntu-24.04
+    # Optional but recommended to use a specific environment
+    environment: release
+    # Prevent releases from forked repositories
+    if: github.repository_owner == 'voxpupuli'
+
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: voxpupuli/ruby-release@v0
+      - name: Setup GitHub packages access
+        run: |
+          mkdir -p ~/.gem
+          echo ":github: Bearer ${{ secrets.GITHUB_TOKEN }}" >> ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+      - name: Publish gem to GitHub packages
+        run: gem push --key github --host https://rubygems.pkg.github.com/voxpupuli *.gem
