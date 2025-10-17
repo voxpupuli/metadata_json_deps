@@ -1,6 +1,22 @@
 # Changelog
 
-## [2.1.0](https://github.com/voxpupuli/metadata_json_deps/tree/2.1.0) (2025-05-21)
+## [2.2.0](https://github.com/voxpupuli/metadata_json_deps/tree/2.2.0) (2025-10-17)
+
+[Full Changelog](https://github.com/voxpupuli/metadata_json_deps/compare/2.1.0...2.2.0)
+
+**Implemented enhancements:**
+
+- base64: Allow 0.3.x [\#35](https://github.com/voxpupuli/metadata_json_deps/pull/35) ([bastelfreak](https://github.com/bastelfreak))
+
+**Fixed bugs:**
+
+- CI: Make tests more flexible [\#36](https://github.com/voxpupuli/metadata_json_deps/pull/36) ([bastelfreak](https://github.com/bastelfreak))
+
+**Merged pull requests:**
+
+- CI: Use explicit token permissions [\#34](https://github.com/voxpupuli/metadata_json_deps/pull/34) ([bastelfreak](https://github.com/bastelfreak))
+
+## [2.1.0](https://github.com/voxpupuli/metadata_json_deps/tree/2.1.0) (2025-05-23)
 
 [Full Changelog](https://github.com/voxpupuli/metadata_json_deps/compare/2.0.0...2.1.0)
 

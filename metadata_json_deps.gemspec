@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'metadata_json_deps'
-  s.version     = '2.1.0'
+  s.version     = '2.2.0'
   s.licenses    = ['MIT']
   s.summary     = 'Check your Puppet metadata dependencies'
   s.description = 'Verify all your dependencies allow the latest versions on Puppet Forge'
