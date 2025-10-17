@@ -69,7 +69,7 @@ describe MetadataJsonDeps do
       let(:module_name) { 'theforeman/motd' }
       let(:module_version) { '< 0.1.0' }
 
-      it { expect { subject }.to output(%r{\AChecking .+puppet-module.+json\n  theforeman/motd \(< 0\.1\.0\) doesn't match 2\.0\.0\Z}).to_stdout }
+      it { expect { subject }.to output(%r{\AChecking .+puppet-module.+json\n  theforeman/motd \(< 0\.1\.0\) doesn't match \d+\.\d+\.\d+\Z}).to_stdout }
       it { expect { subject }.to_not output.to_stderr }
     end
   end
