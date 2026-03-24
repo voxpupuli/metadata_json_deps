@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 3.1'
 
   s.add_runtime_dependency 'puppet_forge', '~> 6.0'
-  s.add_runtime_dependency 'puppet_metadata', '>= 0.3.0', '< 6'
+  s.add_runtime_dependency 'puppet_metadata', '>= 0.3.0', '< 7'
   # dependency for puppet_forge, see https://github.com/puppetlabs/forge-ruby/pull/129
   s.add_runtime_dependency 'base64', '>= 0.2', '< 0.4'
 
