@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.3.0](https://github.com/voxpupuli/metadata_json_deps/tree/2.3.0) (2026-03-24)
+
+[Full Changelog](https://github.com/voxpupuli/metadata_json_deps/compare/2.2.0...2.3.0)
+
+**Implemented enhancements:**
+
+- remove base64 dependency [\#41](https://github.com/voxpupuli/metadata_json_deps/pull/41) ([bastelfreak](https://github.com/bastelfreak))
+- puppet\_metadata: Allow 6.x [\#39](https://github.com/voxpupuli/metadata_json_deps/pull/39) ([bastelfreak](https://github.com/bastelfreak))
+
 ## [2.2.0](https://github.com/voxpupuli/metadata_json_deps/tree/2.2.0) (2025-10-17)
 
 [Full Changelog](https://github.com/voxpupuli/metadata_json_deps/compare/2.1.0...2.2.0)
