@@ -1,3 +1,4 @@
+require 'json'
 require 'puppet_forge'
 require 'puppet_metadata'
 
@@ -82,22 +83,34 @@ module MetadataJsonDeps
   #   The filenames to run on
   # @param [Boolean] verbose
   #   Whether or not to run in verbose mode
+  # @param [Symbol] format
+  #   :text or :json
   # @return [Integer] the exit code
-  def self.run(filenames, verbose = false)
+  def self.run(filenames, verbose = false, format: :text)
     forge = ForgeVersions.new
 
     exit_code = 0
+    json = format.to_sym == :json
+    doc = {'files' => []} if json
 
     filenames.each do |filename|
-      puts "Checking #{filename}"
+      unless json
+        puts "Checking #{filename}"
+      end
       metadata = PuppetMetadata.read(filename)
+      file_entry = json ? {'path' => filename, 'dependencies' => []} : nil
 
-      metadata.dependencies.map do |dependency, constraint|
+      metadata.dependencies.each do |dependency, constraint|
         mod = forge.get_module(dependency)
 
         if mod.deprecated_at
           exit_code |= 2
-          if mod.superseded_by
+          if json
+            dep = {'name' => dependency, 'version_requirement' => constraint.to_s, 'status' => 'deprecated'}
+            dep['superseded_by'] = mod.superseded_by[:slug] if mod.superseded_by
+            dep['deprecated_for'] = mod.deprecated_for if mod.deprecated_for
+            file_entry['dependencies'] << dep
+          elsif mod.superseded_by
             puts "  #{dependency} was superseded by #{mod.superseded_by[:slug]}"
           elsif mod.deprecated_for
             puts "  #{dependency} was deprecated: #{mod.deprecated_for}"
@@ -108,16 +121,36 @@ module MetadataJsonDeps
           current = mod.current_release.version
 
           if metadata.satisfies_dependency?(dependency, current)
-            if verbose
+            if json
+              file_entry['dependencies'] << {
+                'name' => dependency,
+                'version_requirement' => constraint.to_s,
+                'status' => 'satisfies',
+                'current_release' => current,
+              }
+            elsif verbose
               puts "  #{dependency} (#{constraint}) matches #{current}"
             end
           else
             exit_code |= 1
-            puts "  #{dependency} (#{constraint}) doesn't match #{current}"
+            if json
+              file_entry['dependencies'] << {
+                'name' => dependency,
+                'version_requirement' => constraint.to_s,
+                'status' => 'unsatisfied',
+                'current_release' => current,
+              }
+            else
+              puts "  #{dependency} (#{constraint}) doesn't match #{current}"
+            end
           end
         end
       end
+
+      doc['files'] << file_entry if json
     end
+
+    puts JSON.pretty_generate(doc) if json
 
     exit_code
   rescue Interrupt
