@@ -81,16 +81,14 @@ module MetadataJsonDeps
   # @summary Run the application
   # @param [Array[String]] filenames
   #   The filenames to run on
-  # @param [Boolean] verbose
-  #   Whether or not to run in verbose mode
-  # @param [Symbol] format
-  #   :text or :json
+  # @param [Hash] options
+  #   The command line options
   # @return [Integer] the exit code
-  def self.run(filenames, verbose = false, format: :text)
+  def self.run(filenames, options = {})
     forge = ForgeVersions.new
 
     exit_code = 0
-    json = format.to_sym == :json
+    json = options[:format] == :json
     doc = {'files' => []} if json
 
     filenames.each do |filename|
@@ -128,7 +126,7 @@ module MetadataJsonDeps
                 'status' => 'satisfies',
                 'current_release' => current,
               }
-            elsif verbose
+            elsif options[:verbose]
               puts "  #{dependency} (#{constraint}) matches #{current}"
             end
           else

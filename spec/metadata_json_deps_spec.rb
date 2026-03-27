@@ -4,28 +4,20 @@ require 'stringio'
 require 'tempfile'
 
 describe MetadataJsonDeps do
-  def capture_stdout
-    io = StringIO.new
-    prior = $stdout
-    $stdout = io
-    yield
-    io.string
-  ensure
-    $stdout = prior
-  end
-
   context 'no filenames' do
     subject { described_class.run([]) }
 
     it { expect { subject }.to_not output.to_stdout }
     it { expect { subject }.to_not output.to_stderr }
+  end
 
-    context 'with json format' do
-      it 'prints an empty document' do
-        out = capture_stdout { described_class.run([], format: :json) }
-        expect(JSON.parse(out)).to eq('files' => [])
-      end
-    end
+  context 'with json format' do
+    subject { described_class.run([], {format: :json}) }
+
+    let(:expected_output) { {'files' => []} }
+
+    it { expect { subject }.to output(include(JSON.pretty_generate(expected_output))).to_stdout }
+    it { expect { subject }.to_not output.to_stderr }
   end
 
   context 'with a module' do
@@ -48,11 +40,12 @@ describe MetadataJsonDeps do
         f.write(mod.to_json)
         f.flush
 
-        described_class.run([f.path])
+        described_class.run([f.path], options)
       end
     end
 
     let(:module_version) { '>= 0' }
+    let(:options) { {} }
 
     context 'that depends on a deprecated module' do
       context 'with replacement' do
@@ -60,6 +53,17 @@ describe MetadataJsonDeps do
 
         it { expect { subject }.to output(%r{\AChecking .+puppet-module.+\.json\n  puppetlabs/mssql was superseded by puppetlabs-sqlserver\Z}).to_stdout }
         it { expect { subject }.to_not output.to_stderr }
+
+        context 'with json format' do
+          let(:options) { {format: :json} }
+
+          it { expect { subject }.to output(
+            match(/"name": "puppetlabs\/mssql"/)
+            .and(match(/"status": "deprecated"/))
+            .and(match(/"superseded_by": "puppetlabs-sqlserver"/))
+          ).to_stdout }
+          it { expect { subject }.to_not output.to_stderr }
+        end
       end
 
       context 'without replacement' do
@@ -68,6 +72,16 @@ describe MetadataJsonDeps do
 
           it { expect { subject }.to output(%r{\AChecking .+puppet-module.+\.json\n  puppetlabs/dsc was deprecated: Migrate to https://forge\.puppet\.com/dsc modules\Z}).to_stdout }
           it { expect { subject }.to_not output.to_stderr }
+
+          context 'with json format' do
+            let(:options) { {format: :json} }
+
+            it { expect { subject }.to output(
+              match(/"name": "puppetlabs\/dsc"/)
+              .and(match(/"status": "deprecated"/))
+              .and(match(/"deprecated_for": "Migrate to https:\/\/forge\.puppet\.com\/dsc modules"/))
+            ).to_stdout }
+          end
         end
 
         # TODO find a module without a reason
@@ -81,6 +95,16 @@ describe MetadataJsonDeps do
 
       it { expect { subject }.to output(%r{\AChecking .+puppet-module.+json\Z}).to_stdout }
       it { expect { subject }.to_not output.to_stderr }
+
+      context 'with json format' do
+        let(:options) { {format: :json} }
+
+        it { expect { subject }.to output(
+          match(/"name": "puppetlabs\/stdlib"/)
+          .and(match(/"status": "satisfies"/))
+          .and(match(/"current_release": "\d+\.\d+\.\d+"/))
+        ).to_stdout }
+      end
     end
 
     context 'with an outdated dependency' do
@@ -91,35 +115,13 @@ describe MetadataJsonDeps do
       it { expect { subject }.to_not output.to_stderr }
 
       context 'with json format' do
-        it 'reports unsatisfied dependency in json' do
-          json_out = Tempfile.create(['puppet-module', '.json']) do |f|
-            mod = {
-              "name": "puppet-dummy",
-              "author": "Nobody",
-              "license": "none",
-              "source": "/dev/null",
-              "summary": "Dummy",
-              "version": "0.0.1",
-              "dependencies": [
-                {
-                  "name": module_name,
-                  "version_requirement": module_version,
-                },
-              ],
-            }
-            f.write(mod.to_json)
-            f.flush
+        let(:options) { {format: :json} }
 
-            capture_stdout { described_class.run([f.path], format: :json) }
-          end
-
-          data = JSON.parse(json_out)
-          dep = data.fetch('files').first.fetch('dependencies').first
-          expect(dep['name']).to eq('theforeman/motd')
-          expect(dep['version_requirement']).to eq('< 0.1.0')
-          expect(dep['status']).to eq('unsatisfied')
-          expect(dep['current_release']).to match(/\A\d+\.\d+\.\d+\z/)
-        end
+        it { expect { subject }.to output(
+          match(/"name": "theforeman\/motd"/)
+          .and(match(/"status": "unsatisfied"/))
+          .and(match(/"current_release": "\d+\.\d+\.\d+"/))
+        ).to_stdout }
       end
     end
   end

@@ -16,4 +16,4 @@ OptionParser.new do |opts|
   end
 end.parse!(into: options)
 
-exit(MetadataJsonDeps.run(ARGV, options.fetch(:verbose, false), format: options[:format] || :text))
+exit(MetadataJsonDeps.run(ARGV, options))
