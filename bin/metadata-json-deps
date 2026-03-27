@@ -6,6 +6,14 @@ require 'metadata_json_deps'
 options = {}
 OptionParser.new do |opts|
   opts.on("-v", "--[no-]verbose", "Run verbosely")
+  opts.on("-f", "--format FORMAT", "Output format: text (default) or json") do |f|
+    options[:format] = case f.downcase
+    when "text" then :text
+    when "json" then :json
+    else
+      raise OptionParser::InvalidArgument, f
+    end
+  end
 end.parse!(into: options)
 
-exit(MetadataJsonDeps.run(ARGV, options[:verbose]))
+exit(MetadataJsonDeps.run(ARGV, options))

@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'json'
+require 'stringio'
 require 'tempfile'
 
 describe MetadataJsonDeps do
@@ -7,6 +8,15 @@ describe MetadataJsonDeps do
     subject { described_class.run([]) }
 
     it { expect { subject }.to_not output.to_stdout }
+    it { expect { subject }.to_not output.to_stderr }
+  end
+
+  context 'with json format' do
+    subject { described_class.run([], {format: :json}) }
+
+    let(:expected_output) { {'files' => []} }
+
+    it { expect { subject }.to output(include(JSON.pretty_generate(expected_output))).to_stdout }
     it { expect { subject }.to_not output.to_stderr }
   end
 
@@ -30,11 +40,12 @@ describe MetadataJsonDeps do
         f.write(mod.to_json)
         f.flush
 
-        described_class.run([f.path])
+        described_class.run([f.path], options)
       end
     end
 
     let(:module_version) { '>= 0' }
+    let(:options) { {} }
 
     context 'that depends on a deprecated module' do
       context 'with replacement' do
@@ -42,6 +53,17 @@ describe MetadataJsonDeps do
 
         it { expect { subject }.to output(%r{\AChecking .+puppet-module.+\.json\n  puppetlabs/mssql was superseded by puppetlabs-sqlserver\Z}).to_stdout }
         it { expect { subject }.to_not output.to_stderr }
+
+        context 'with json format' do
+          let(:options) { {format: :json} }
+
+          it { expect { subject }.to output(
+            match(/"name": "puppetlabs\/mssql"/)
+            .and(match(/"status": "deprecated"/))
+            .and(match(/"superseded_by": "puppetlabs-sqlserver"/))
+          ).to_stdout }
+          it { expect { subject }.to_not output.to_stderr }
+        end
       end
 
       context 'without replacement' do
@@ -50,6 +72,16 @@ describe MetadataJsonDeps do
 
           it { expect { subject }.to output(%r{\AChecking .+puppet-module.+\.json\n  puppetlabs/dsc was deprecated: Migrate to https://forge\.puppet\.com/dsc modules\Z}).to_stdout }
           it { expect { subject }.to_not output.to_stderr }
+
+          context 'with json format' do
+            let(:options) { {format: :json} }
+
+            it { expect { subject }.to output(
+              match(/"name": "puppetlabs\/dsc"/)
+              .and(match(/"status": "deprecated"/))
+              .and(match(/"deprecated_for": "Migrate to https:\/\/forge\.puppet\.com\/dsc modules"/))
+            ).to_stdout }
+          end
         end
 
         # TODO find a module without a reason
@@ -63,6 +95,16 @@ describe MetadataJsonDeps do
 
       it { expect { subject }.to output(%r{\AChecking .+puppet-module.+json\Z}).to_stdout }
       it { expect { subject }.to_not output.to_stderr }
+
+      context 'with json format' do
+        let(:options) { {format: :json} }
+
+        it { expect { subject }.to output(
+          match(/"name": "puppetlabs\/stdlib"/)
+          .and(match(/"status": "satisfies"/))
+          .and(match(/"current_release": "\d+\.\d+\.\d+"/))
+        ).to_stdout }
+      end
     end
 
     context 'with an outdated dependency' do
@@ -71,6 +113,16 @@ describe MetadataJsonDeps do
 
       it { expect { subject }.to output(%r{\AChecking .+puppet-module.+json\n  theforeman/motd \(< 0\.1\.0\) doesn't match \d+\.\d+\.\d+\Z}).to_stdout }
       it { expect { subject }.to_not output.to_stderr }
+
+      context 'with json format' do
+        let(:options) { {format: :json} }
+
+        it { expect { subject }.to output(
+          match(/"name": "theforeman\/motd"/)
+          .and(match(/"status": "unsatisfied"/))
+          .and(match(/"current_release": "\d+\.\d+\.\d+"/))
+        ).to_stdout }
+      end
     end
   end
 
