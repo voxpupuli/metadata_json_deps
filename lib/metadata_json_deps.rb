@@ -77,6 +77,77 @@ module MetadataJsonDeps
     [requirement.to_s, new]
   end
 
+  # Build dependency check results for one metadata file (for pluggable formatters).
+  #
+  # @param [String] filename path to a metadata.json file
+  # @param [ForgeVersions] forge forge client (for tests or shared cache)
+  # @return [Hash] { filename: String, checks: Array<Hash> }. Each check is one of:
+  #   - { type: :deprecated, name:, superseded_by:, deprecated_for: }
+  #   - { type: :satisfies, name:, constraint:, current: }
+  #   - { type: :unsatisfied, name:, constraint:, current: }
+  def self.dependency_check_results(filename, forge)
+    metadata = PuppetMetadata.read(filename)
+
+    checks = metadata.dependencies.map do |dependency, constraint|
+      mod = forge.get_module(dependency)
+
+      if mod.deprecated_at
+        {
+          type: :deprecated,
+          name: dependency,
+          superseded_by: mod.superseded_by&.fetch(:slug, nil),
+          deprecated_for: mod.deprecated_for,
+        }
+      else
+        current = mod.current_release.version
+        type = metadata.satisfies_dependency?(dependency, current) ? :satisfies : :unsatisfied
+        {type: type, name: dependency, constraint: constraint.to_s, current: current}
+      end
+    end
+
+    {filename: filename, name: metadata.name, checks: checks}
+  end
+
+  # Format dependency check results as text
+  #
+  # @param [Array[String]] filenames
+  #   The filenames to run on
+  # @param [ForgeVersions] forge forge client (for tests or shared cache)
+  # @param [Boolean] verbose
+  #   Whether or not to run in verbose mode
+  # @return [Integer] the exit code  def self.format_text(filenames, forge, verbose)
+  def self.format_text(filenames, forge, verbose)
+    exit_code = 0
+
+    filenames.each do |filename|
+      puts "Checking #{filename}"
+      results = dependency_check_results(filename, forge)
+      results[:checks].each do | mod |
+        if mod[:type] == :deprecated
+          exit_code |= 2
+          if mod[:superseded_by]
+            puts "  #{mod[:name]} was superseded by #{mod[:superseded_by]}"
+          elsif mod[:deprecated_for]
+            puts "  #{mod[:name]} was deprecated: #{mod[:deprecated_for]}"
+          else
+            puts "  #{mod[:name]} was deprecated"
+          end
+        else
+          if mod[:type] == :satisfies
+            if verbose
+              puts "  #{mod[:name]} (#{mod[:constraint]}) matches #{mod[:current]}"
+            end
+          else
+            exit_code |= 1
+            puts "  #{mod[:name]} (#{mod[:constraint]}) doesn't match #{mod[:current]}"
+          end
+        end
+      end
+    end
+
+    exit_code
+  end
+
   # @summary Run the application
   # @param [Array[String]] filenames
   #   The filenames to run on
@@ -86,40 +157,7 @@ module MetadataJsonDeps
   def self.run(filenames, verbose = false)
     forge = ForgeVersions.new
 
-    exit_code = 0
-
-    filenames.each do |filename|
-      puts "Checking #{filename}"
-      metadata = PuppetMetadata.read(filename)
-
-      metadata.dependencies.map do |dependency, constraint|
-        mod = forge.get_module(dependency)
-
-        if mod.deprecated_at
-          exit_code |= 2
-          if mod.superseded_by
-            puts "  #{dependency} was superseded by #{mod.superseded_by[:slug]}"
-          elsif mod.deprecated_for
-            puts "  #{dependency} was deprecated: #{mod.deprecated_for}"
-          else
-            puts "  #{dependency} was deprecated"
-          end
-        else
-          current = mod.current_release.version
-
-          if metadata.satisfies_dependency?(dependency, current)
-            if verbose
-              puts "  #{dependency} (#{constraint}) matches #{current}"
-            end
-          else
-            exit_code |= 1
-            puts "  #{dependency} (#{constraint}) doesn't match #{current}"
-          end
-        end
-      end
-    end
-
-    exit_code
+    format_text(filenames, forge, verbose)
   rescue Interrupt
     0
   end

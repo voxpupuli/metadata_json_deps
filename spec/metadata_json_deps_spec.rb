@@ -11,28 +11,30 @@ describe MetadataJsonDeps do
   end
 
   context 'with a module' do
-    subject do
-      Tempfile.create(['puppet-module', '.json']) do |f|
-        mod = {
-          "name": "puppet-dummy",
-          "author": "Nobody",
-          "license": "none",
-          "source": "/dev/null",
-          "summary": "Dummy",
-          "version": "0.0.1",
-          "dependencies": [
-            {
-              "name": module_name,
-              "version_requirement": module_version,
-            },
-          ],
-        }
-        f.write(mod.to_json)
-        f.flush
-
-        described_class.run([f.path])
-      end
+    let(:metadata_file) do
+      f = Tempfile.new(['puppet-module', '.json'])
+      f.write({
+        name: "puppet-dummy",
+        author: "Nobody",
+        license: "none",
+        source: "/dev/null",
+        summary: "Dummy",
+        version: "0.0.1",
+        dependencies: [
+          {
+            name: module_name,
+            version_requirement: module_version
+          },
+        ],
+      }.to_json)
+      f.flush
+      f
     end
+    after { metadata_file.close! }
+    subject { described_class.run([metadata_file.path]) }
+
+    let(:forge) { MetadataJsonDeps::ForgeVersions.new }
+    let(:check_results) { described_class.dependency_check_results(metadata_file.path, forge) }
 
     let(:module_version) { '>= 0' }
 
@@ -42,6 +44,7 @@ describe MetadataJsonDeps do
 
         it { expect { subject }.to output(%r{\AChecking .+puppet-module.+\.json\n  puppetlabs/mssql was superseded by puppetlabs-sqlserver\Z}).to_stdout }
         it { expect { subject }.to_not output.to_stderr }
+        it { expect(check_results[:checks]).to include(a_hash_including(type: :deprecated, name: 'puppetlabs/mssql', superseded_by: 'puppetlabs-sqlserver')) }
       end
 
       context 'without replacement' do
@@ -50,6 +53,7 @@ describe MetadataJsonDeps do
 
           it { expect { subject }.to output(%r{\AChecking .+puppet-module.+\.json\n  puppetlabs/dsc was deprecated: Migrate to https://forge\.puppet\.com/dsc modules\Z}).to_stdout }
           it { expect { subject }.to_not output.to_stderr }
+          it { expect(check_results[:checks]).to include(a_hash_including(type: :deprecated, name: 'puppetlabs/dsc')) }
         end
 
         # TODO find a module without a reason
@@ -63,6 +67,7 @@ describe MetadataJsonDeps do
 
       it { expect { subject }.to output(%r{\AChecking .+puppet-module.+json\Z}).to_stdout }
       it { expect { subject }.to_not output.to_stderr }
+      it { expect(check_results[:checks]).to include(a_hash_including(type: :satisfies, name: 'puppetlabs/stdlib')) }
     end
 
     context 'with an outdated dependency' do
@@ -71,6 +76,7 @@ describe MetadataJsonDeps do
 
       it { expect { subject }.to output(%r{\AChecking .+puppet-module.+json\n  theforeman/motd \(< 0\.1\.0\) doesn't match \d+\.\d+\.\d+\Z}).to_stdout }
       it { expect { subject }.to_not output.to_stderr }
+      it { expect(check_results[:checks]).to include(a_hash_including(type: :unsatisfied, name: 'theforeman/motd', constraint: '< 0.1.0')) }
     end
   end
 
