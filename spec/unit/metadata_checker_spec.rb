@@ -17,7 +17,7 @@ describe 'dependency_checker' do
         [
           ['puppetlabs/registry', SemanticPuppet::VersionRange.parse('>=1.0.0 <6.0.0'),
            SemanticPuppet::Version.parse('5.0.3'), true],
-          ['puppetlabs/stdlib', SemanticPuppet::VersionRange.parse('>=2.1.0 <10.0.0'),
+          ['puppetlabs/stdlib', SemanticPuppet::VersionRange.parse('>=2.1.0 <11.0.0'),
            SemanticPuppet::Version.parse('9.3.0'), true]
         ]
       )
