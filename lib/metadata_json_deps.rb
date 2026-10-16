@@ -82,7 +82,7 @@ module MetadataJsonDeps
   # @param [String] filename path to a metadata.json file
   # @param [ForgeVersions] forge forge client (for tests or shared cache)
   # @return [Hash] { filename: String, checks: Array<Hash> }. Each check is one of:
-  #   - { type: :deprecated, name:, superseded_by:, deprecated_for: }
+  #   - { type: :deprecated, name:, constraint:, current:, superseded_by:, deprecated_for: }
   #   - { type: :satisfies, name:, constraint:, current: }
   #   - { type: :unsatisfied, name:, constraint:, current: }
   def self.dependency_check_results(filename, forge)
@@ -91,17 +91,18 @@ module MetadataJsonDeps
     checks = metadata.dependencies.map do |dependency, constraint|
       mod = forge.get_module(dependency)
 
+      current = mod.current_release&.version
+      check = {name: dependency, constraint: constraint.to_s, current: current}
+
       if mod.deprecated_at
-        {
+        check.merge(
           type: :deprecated,
-          name: dependency,
           superseded_by: mod.superseded_by&.fetch(:slug, nil),
           deprecated_for: mod.deprecated_for,
-        }
+        )
       else
-        current = mod.current_release.version
         type = metadata.satisfies_dependency?(dependency, current) ? :satisfies : :unsatisfied
-        {type: type, name: dependency, constraint: constraint.to_s, current: current}
+        check.merge(type: type)
       end
     end
 

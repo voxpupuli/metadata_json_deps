@@ -45,6 +45,7 @@ describe MetadataJsonDeps do
         it { expect { subject }.to output(%r{\AChecking .+puppet-module.+\.json\n  puppetlabs/mssql was superseded by puppetlabs-sqlserver\Z}).to_stdout }
         it { expect { subject }.to_not output.to_stderr }
         it { expect(check_results[:checks]).to include(a_hash_including(type: :deprecated, name: 'puppetlabs/mssql', superseded_by: 'puppetlabs-sqlserver')) }
+        it { expect(check_results[:checks]).to include(a_hash_including(type: :deprecated, constraint: module_version, current: a_kind_of(String))) }
       end
 
       context 'without replacement' do
