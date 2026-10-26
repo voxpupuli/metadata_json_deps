@@ -4,8 +4,20 @@ require 'optparse'
 require 'metadata_json_deps'
 
 options = {}
-OptionParser.new do |opts|
+p=OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [FILE] [options]"
   opts.on("-v", "--[no-]verbose", "Run verbosely")
-end.parse!(into: options)
+end
+p.parse!(into: options)
 
-exit(MetadataJsonDeps.run(ARGV, options[:verbose]))
+# search for metadata.json only if ARGV is empty
+metadata_json_default_file = './metadata.json'.freeze
+
+if ARGV.empty? && ! File.file?(metadata_json_default_file)
+  STDERR.puts p.banner
+  exit 1
+end
+
+metadata_json_file = ARGV.empty? ? [metadata_json_default_file] : ARGV
+
+exit(MetadataJsonDeps.run(metadata_json_file, options[:verbose]))
